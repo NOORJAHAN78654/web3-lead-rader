@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Lead Radar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B1220;
+  --panel:#111A2C;
+  --panel2:#0E1626;
+  --border:#22304B;
+  --border2:#1A2540;
+  --text:#E7ECF3;
+  --muted:#8C9BB5;
+  --muted2:#5F7090;
+  --amber:#F2A93B;
+  --teal:#3FBFAE;
+  --red:#E8636A;
+  --violet:#9C8CFB;
+  --blue:#5B9DF2;
+  --mono:'IBM Plex Mono', monospace;
+  --display:'Space Grotesk', sans-serif;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;}
+.app{padding:18px 20px 40px;max-width:1500px;margin:0 auto;}
+
+/* ---- Header / ticker ---- */
+.tickerbar{display:flex;align-items:center;gap:18px;border:1px solid var(--border);background:linear-gradient(180deg,var(--panel),var(--panel2));border-radius:10px;padding:14px 18px;margin-bottom:16px;flex-wrap:wrap;}
+.brand{font-family:var(--display);font-weight:700;font-size:19px;letter-spacing:.2px;display:flex;align-items:center;gap:9px;}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 3px rgba(63,191,174,.18);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.tickerstats{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap;}
+.tstat{display:flex;flex-direction:column;gap:2px;}
+.tstat .v{font-size:16px;font-weight:600;font-family:var(--mono);}
+.tstat .l{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;}
+
+/* ---- Controls ---- */
+.controls{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
+input[type=text], select, textarea{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 11px;font-family:var(--mono);font-size:12.5px;}
+input[type=text]:focus, select:focus, textarea:focus{outline:none;border-color:var(--teal);}
+.searchbox{flex:1;min-width:220px;position:relative;}
+.searchbox input{width:100%;padding-right:34px;}
+.btn{background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:8px 14px;font-family:var(--mono);font-size:12px;cursor:pointer;font-weight:500;letter-spacing:.02em;white-space:nowrap;transition:border-color .15s, background .15s;}
+.btn:hover{border-color:var(--muted2);}
+.btn.primary{background:var(--teal);color:#04211D;border-color:var(--teal);font-weight:600;}
+.btn.primary:hover{background:#54d4c2;}
+.btn.amber{background:var(--amber);color:#2B1A02;border-color:var(--amber);font-weight:600;}
+.btn.amber:hover{background:#ffbd55;}
+.btn.ghost{background:transparent;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn.small{padding:5px 10px;font-size:11px;}
+
+.tabs{display:flex;gap:6px;margin-bottom:14px;}
+.tab{padding:8px 16px;border-radius:7px 7px 0 0;cursor:pointer;color:var(--muted);font-size:12px;letter-spacing:.04em;text-transform:uppercase;border:1px solid transparent;}
+.tab.active{background:var(--panel);color:var(--text);border:1px solid var(--border);border-bottom-color:var(--panel);}
+
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:0 10px 10px 10px;padding:16px;}
+
+/* ---- Table ---- */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:8px 10px;color:var(--muted2);font-weight:500;text-transform:uppercase;font-size:10px;letter-spacing:.07em;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap;}
+th:hover{color:var(--muted);}
+td{padding:9px 10px;border-bottom:1px solid var(--border2);vertical-align:middle;white-space:nowrap;}
+tr.row:hover{background:rgba(255,255,255,0.02);cursor:pointer;}
+.coinname{font-weight:600;font-family:var(--display);}
+.symbol{color:var(--muted2);font-size:10.5px;}
+.tag{display:inline-block;padding:2px 7px;border-radius:5px;font-size:10px;border:1px solid var(--border);color:var(--muted);margin-right:3px;}
+.tag.narrative{border-color:var(--violet);color:var(--violet);}
+.tag.cex{border-color:var(--blue);color:var(--blue);}
+.tag.dex{border-color:var(--teal);color:var(--teal);}
+.scorepill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:20px;font-weight:600;font-size:11.5px;border:1px solid currentColor;}
+.riskbadges{display:flex;gap:3px;flex-wrap:wrap;max-width:160px;}
+.riskdot{width:7px;height:7px;border-radius:50%;background:var(--red);}
+.muted{color:var(--muted2);}
+.emptystate{padding:50px 20px;text-align:center;color:var(--muted2);}
+.emptystate b{color:var(--muted);font-family:var(--display);font-size:15px;display:block;margin-bottom:6px;}
+
+/* ---- Rankings ---- */
+.rankgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+.rankcard{border:1px solid var(--border);border-radius:9px;padding:14px;background:var(--panel2);}
+.rankcard h3{margin:0 0 10px;font-family:var(--display);font-size:13px;color:var(--amber);letter-spacing:.02em;}
+.rankrow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--border2);font-size:11.5px;}
+.rankrow:last-child{border-bottom:none;}
+.rankrow .rn{color:var(--muted2);width:18px;}
+
+/* ---- Modal ---- */
+.overlay{position:fixed;inset:0;background:rgba(4,8,16,.7);display:flex;align-items:flex-start;justify-content:center;padding:30px 16px;overflow-y:auto;z-index:50;}
+.modal{background:var(--panel);border:1px solid var(--border);border-radius:12px;width:100%;max-width:760px;padding:22px 24px 26px;margin-top:0;}
+.modal h2{font-family:var(--display);margin:0 0 4px;font-size:18px;}
+.modal .sub{color:var(--muted2);font-size:11.5px;margin-bottom:16px;}
+.fgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;}
+.fgrid.two{grid-template-columns:repeat(2,1fr);}
+.fgrid.one{grid-template-columns:1fr;}
+.field label{display:block;font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+.field input, .field select, .field textarea{width:100%;}
+.field textarea{resize:vertical;min-height:50px;}
+.sectiontitle{font-family:var(--display);font-size:11.5px;color:var(--teal);text-transform:uppercase;letter-spacing:.07em;margin:18px 0 10px;border-top:1px solid var(--border2);padding-top:14px;}
+.sectiontitle:first-of-type{border-top:none;padding-top:0;margin-top:2px;}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px;}
+.chip{border:1px solid var(--border);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;color:var(--muted);}
+.chip.on{background:var(--teal);color:#04211D;border-color:var(--teal);font-weight:600;}
+.chip.risk.on{background:var(--red);color:#250507;border-color:var(--red);}
+.modalfooter{display:flex;justify-content:space-between;align-items:center;margin-top:18px;padding-top:14px;border-top:1px solid var(--border2);}
+.livebox{border:1px dashed var(--border);border-radius:8px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;align-items:center;}
+.livebox input{flex:1;}
+.status{font-size:11.5px;color:var(--muted2);min-height:16px;}
+.status.err{color:var(--red);}
+.status.ok{color:var(--teal);}
+.scorepreview{display:flex;align-items:center;gap:14px;border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-top:4px;}
+.scorepreview .big{font-family:var(--display);font-size:28px;font-weight:700;}
+.scorepreview .bd{font-size:10.5px;color:var(--muted2);line-height:1.6;}
+::placeholder{color:var(--muted2);}
+.closebtn{position:absolute;top:16px;right:18px;cursor:pointer;color:var(--muted2);font-size:18px;}
+.modalwrap{position:relative;}
+@media (max-width:680px){.fgrid, .fgrid.two{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+/* ================= CONFIG / DATA ================= */
+const NARRATIVES = ["AI","RWA","DePIN","Gaming","Meme","Layer 1","Layer 2","Infrastructure","Payments","SocialFi","DeFi","Restaking","Liquid Staking","Oracle","Privacy","Identity","NFT","Launchpad","Exchange Token","Stablecoin","Cross-chain","Data","ZK"];
+const NARRATIVE_HOTNESS = {AI:92,RWA:86,DePIN:82,Restaking:80,"Layer 2":80,Infrastructure:76,ZK:78,Oracle:68,Cross-chain:66,DeFi:70,Privacy:62,Identity:58,Payments:66,SocialFi:60,Gaming:64,"Layer 1":70,Stablecoin:60,Launchpad:62,"Exchange Token":64,"Liquid Staking":74,Data:65,NFT:55,Meme:48};
+const PARTNERSHIPS = ["Exchange Listing","Market Making","Launchpad","Fundraising","VC Introductions","Marketing","KOL Campaign","AMA","Trading Competition","Liquidity Program"];
+const RISK_OPTIONS = ["Low Liquidity","No Website","Anonymous Team","No Audit","Honeypot Risk","Ownership Issues","Whale Concentration","Fake Volume","Wash Trading","Dead Community","Scam Reports","Inactive Development","Low Holder Count"];
+const STORE_KEY = "leads-v1";
+
+let state = { leads: [], view: "database", search: "", sortKey: "score", sortDir: "desc", editing: null, status:"", statusType:"" };
+
+/* ================= STORAGE ================= */
+async function loadLeads(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    state.leads = raw ? JSON.parse(raw) : [];
+  }catch(e){ state.leads = []; }
+  render();
+}
+async function saveLeads(){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state.leads)); }
+  catch(e){ console.error("save failed", e); }
+}
+
+/* ================= SCORING ================= */
+function bucket(v, steps){ // steps: array of [threshold, score] descending
+  if(v==null || isNaN(v)) return 10;
+  for(const [t,s] of steps){ if(v>=t) return s; }
+  return 5;
+}
+function volumeScore(l){ return bucket(num(l.volume24h), [[1e7,100],[2.5e6,85],[5e5,70],[1e5,55],[2.5e4,40],[5e3,25],[0,10]]); }
+function liquidityScore(l){ return bucket(num(l.liquidity), [[2e6,100],[5e5,85],[1e5,70],[2.5e4,55],[5e3,40],[1e3,25],[0,10]]); }
+function communityScore(l){
+  const tot = num(l.twitterFollowers)+num(l.telegramMembers)+num(l.discordMembers);
+  return bucket(tot, [[2e5,100],[5e4,85],[1e4,70],[2500,55],[500,35],[0,15]]);
+}
+function exchangeScore(l){
+  const w = (l.exchangesCEX?.length||0)*2 + (l.exchangesDEX?.length||0) + (l.perp?.length||0)*1.5;
+  return bucket(w, [[14,100],[8,85],[4,70],[2,55],[1,35],[0,10]]);
+}
+function websiteScore(l){ return Math.round((num(l.websiteQuality)||0)*10); }
+function narrativeScore(l){
+  if(l.narrativeOverride!=null && l.narrativeOverride!=="") return num(l.narrativeOverride);
+  return NARRATIVE_HOTNESS[l.narrative] || 55;
+}
+function securityScore(l){
+  if(l.scamReports && l.scamReports.trim()) return 0;
+  let s=0;
+  if(l.audit) s+=28; if(l.kyc) s+=20; if(l.ownershipRenounced) s+=26; if(l.multisig) s+=26;
+  if(l.knownExploits && l.knownExploits.trim()) s = Math.min(s,15);
+  return Math.min(100,s) || 5;
+}
+function computeScore(l){
+  const s = volumeScore(l)*.20 + liquidityScore(l)*.20 + communityScore(l)*.15 + exchangeScore(l)*.15 + websiteScore(l)*.10 + narrativeScore(l)*.10 + securityScore(l)*.10;
+  return Math.round(s);
+}
+function scoreTier(score){
+  if(score>=95) return {label:"EXCEPTIONAL", color:"var(--amber)"};
+  if(score>=85) return {label:"STRONG", color:"var(--teal)"};
+  if(score>=70) return {label:"GOOD", color:"var(--blue)"};
+  if(score>=50) return {label:"MODERATE", color:"#D6A33B"};
+  return {label:"HIGH RISK", color:"var(--red)"};
+}
+function computeAutoRisks(l){
+  const r = new Set(l.manualRisks||[]);
+  if(num(l.liquidity) < 10000) r.add("Low Liquidity");
+  if(!l.website) r.add("No Website");
+  if(!l.audit) r.add("No Audit");
+  if((num(l.twitterFollowers)+num(l.telegramMembers)) < 200) r.add("Dead Community");
+  if(l.scamReports && l.scamReports.trim()) r.add("Scam Reports");
+  if(num(l.holders) > 0 && num(l.holders) < 100) r.add("Low Holder Count");
+  if(!l.ownershipRenounced && l.mintAuthority) r.add("Ownership Issues");
+  return Array.from(r);
+}
+function num(v){ const n=parseFloat(v); return isNaN(n)?0:n; }
+function fmtNum(v){
+  const n = num(v);
+  if(!n) return "—";
+  if(n>=1e9) return (n/1e9).toFixed(2)+"B";
+  if(n>=1e6) return (n/1e6).toFixed(2)+"M";
+  if(n>=1e3) return (n/1e3).toFixed(1)+"K";
+  return n.toFixed(n<1?4:2);
+}
+function fmtPrice(v){
+  const n = num(v); if(!n) return "—";
+  if(n<0.01) return "$"+n.toFixed(6);
+  if(n<1) return "$"+n.toFixed(4);
+  return "$"+n.toFixed(2);
+}
+
+/* ================= LIVE LOOKUP ================= */
+async function liveLookup(query){
+  setStatus("Searching CoinGecko & DexScreener for \""+query+"\" …","");
+  let draft = blankLead();
+  draft.id = crypto.randomUUID();
+  draft.source = "live";
+  let foundAny = false;
+
+  try{
+    const sRes = await fetch("https://api.coingecko.com/api/v3/search?query="+encodeURIComponent(query));
+    if(sRes.ok){
+      const sData = await sRes.json();
+      const coin = (sData.coins||[])[0];
+      if(coin){
+        const dRes = await fetch("https://api.coingecko.com/api/v3/coins/"+coin.id+"?localization=false&tickers=true&market_data=true&community_data=true&developer_data=true&sparkline=false");
+        if(dRes.ok){
+          const d = await dRes.json();
+          foundAny = true;
+          draft.name = d.name; draft.symbol = (d.symbol||"").toUpperCase();
+          const platforms = d.platforms || {};
+          const chains = Object.keys(platforms).filter(k=>k && platforms[k]);
+          draft.chain = chains[0] || (d.asset_platform_id || "Native/Other");
+          draft.contractAddress = chains[0] ? platforms[chains[0]] : "";
+          draft.price = d.market_data?.current_price?.usd;
+          draft.volume24h = d.market_data?.total_volume?.usd;
+          draft.marketCap = d.market_data?.market_cap?.usd;
+          draft.fdv = d.market_data?.fully_diluted_valuation?.usd;
+          draft.circulatingSupply = d.market_data?.circulating_supply;
+          draft.totalSupply = d.market_data?.total_supply;
+          draft.website = (d.links?.homepage||[]).find(x=>x);
+          draft.whitepaper = d.links?.whitepaper;
+          draft.github = (d.links?.repos_url?.github||[])[0];
+          draft.twitter = d.links?.twitter_screen_name ? "https://x.com/"+d.links.twitter_screen_name : "";
+          draft.telegram = d.links?.telegram_channel_identifier ? "https://t.me/"+d.links.telegram_channel_identifier : "";
+          draft.twitterFollowers = d.community_data?.twitter_followers;
+          draft.telegramMembers = d.community_data?.telegram_channel_user_count;
+          draft.discordMembers = d.community_data?.discord_users || d.community_data?.discord_members;
+          draft.githubActivity = d.developer_data ? ("stars "+(d.developer_data.stars||0)+", commits(4wk) "+(d.developer_data.commit_count_4_weeks||0)) : "";
+          const tickers = d.tickers||[];
+          const cexSet = new Set(), dexSet = new Set();
+          tickers.forEach(t=>{
+            const mkt = t.market?.name; if(!mkt) return;
+            const isDex = /uniswap|pancake|sushi|raydium|curve|balancer|orca|aerodrome|velodrome|quickswap|trader joe|camelot/i.test(mkt);
+            (isDex?dexSet:cexSet).add(mkt);
+          });
+          draft.exchangesCEX = Array.from(cexSet).slice(0,20);
+          draft.exchangesDEX = Array.from(dexSet).slice(0,20);
+          draft.narrative = guessNarrative(d.categories||[]);
+          draft.launchDate = d.genesis_date || "";
+        }
+      }
+    }
+  }catch(e){ /* continue to dexscreener */ }
+
+  try{
+    const dxRes = await fetch("https://api.dexscreener.com/latest/dex/search?q="+encodeURIComponent(query));
+    if(dxRes.ok){
+      const dx = await dxRes.json();
+      const pairs = (dx.pairs||[]).sort((a,b)=> (b.liquidity?.usd||0)-(a.liquidity?.usd||0));
+      const top = pairs[0];
+      if(top){
+        foundAny = true;
+        draft.liquidity = draft.liquidity || top.liquidity?.usd;
+        draft.lpSize = top.liquidity?.usd;
+        draft.topPair = top.baseToken?.symbol+"/"+top.quoteToken?.symbol+" ("+top.dexId+")";
+        if(!draft.name) draft.name = top.baseToken?.name;
+        if(!draft.symbol) draft.symbol = top.baseToken?.symbol;
+        if(!draft.chain) draft.chain = top.chainId;
+        if(!draft.contractAddress) draft.contractAddress = top.baseToken?.address;
+        if(!draft.price) draft.price = top.priceUsd;
+        if(!draft.volume24h) draft.volume24h = top.volume?.h24;
+        if(!draft.fdv) draft.fdv = top.fdv;
+        if(!draft.marketCap) draft.marketCap = top.marketCap;
+        const dexNames = new Set(draft.exchangesDEX||[]);
+        pairs.slice(0,8).forEach(p=>dexNames.add(p.dexId));
+        draft.exchangesDEX = Array.from(dexNames);
+        draft.dexOnly = !foundAny ? true : draft.dexOnly;
+      }
+    }
+  }catch(e){ /* ignore */ }
+
+  if(!foundAny){
+    setStatus("No live data found for \""+query+"\". Add the lead manually instead.","err");
+    return null;
+  }
+  setStatus("Pulled live data for "+(draft.name||query)+". Review and fill in the manual fields (audit, team, website score, etc.) before saving.","ok");
+  return draft;
+}
+function guessNarrative(categories){
+  const text = categories.join(" ").toLowerCase();
+  for(const n of NARRATIVES){ if(text.includes(n.toLowerCase())) return n; }
+  if(text.includes("artificial intelligence")) return "AI";
+  if(text.includes("real world")) return "RWA";
+  if(text.includes("meme")) return "Meme";
+  if(text.includes("gaming")||text.includes("game")) return "Gaming";
+  if(text.includes("layer 1")) return "Layer 1";
+  if(text.includes("layer 2")) return "Layer 2";
+  return "";
+}
+function setStatus(msg, type){ state.status = msg; state.statusType = type; renderStatusOnly(); }
+
+/* ================= LEAD MODEL ================= */
+function blankLead(){
+  return {
+    id:null, name:"", symbol:"", chain:"", contractAddress:"", launchDate:"", tokenStandard:"",
+    price:"", volume24h:"", volume7d:"", volume30d:"", liquidity:"", marketCap:"", fdv:"", circulatingSupply:"", totalSupply:"", holders:"", dailyTx:"",
+    exchangesCEX:[], exchangesDEX:[], perp:[],
+    lpSize:"", lockedLiquidityPct:"", lpLockExpiry:"", topPair:"",
+    twitterFollowers:"", telegramMembers:"", discordMembers:"", githubActivity:"",
+    website:"", whitepaper:"", github:"", twitter:"", telegram:"",
+    websiteQuality:"", audit:false, kyc:false, ownershipRenounced:false, mintAuthority:false, multisig:false,
+    knownExploits:"", scamReports:"",
+    narrative:"", narrativeOverride:"",
+    partnerships:[], manualRisks:[], notes:"",
+    source:"manual", lastUpdated:new Date().toISOString()
+  };
+}
+function upsertLead(lead){
+  lead.lastUpdated = new Date().toISOString();
+  const idx = state.leads.findIndex(l=>l.id===lead.id);
+  if(idx>=0) state.leads[idx] = lead; else state.leads.push(lead);
+  saveLeads();
+}
+function deleteLead(id){
+  state.leads = state.leads.filter(l=>l.id!==id);
+  saveLeads(); render();
+}
+function exportCSV(){
+  const cols = ["name","symbol","chain","narrative","exchangesCEX","exchangesDEX","price","volume24h","liquidity","marketCap","fdv","website","contractAddress","audit","score","risks","notes"];
+  const rows = state.leads.map(l=>{
+    const score = computeScore(l);
+    const risks = computeAutoRisks(l).join("; ");
+    const vals = [l.name,l.symbol,l.chain,l.narrative,(l.exchangesCEX||[]).join("|"),(l.exchangesDEX||[]).join("|"),l.price,l.volume24h,l.liquidity,l.marketCap,l.fdv,l.website,l.contractAddress,l.audit?"Yes":"No",score,risks,(l.notes||"").replace(/\n/g," ")];
+    return vals.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",");
+  });
+  const csv = cols.join(",")+"\n"+rows.join("\n");
+  const blob = new Blob([csv],{type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "web3-lead-database.csv"; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ================= RENDER ================= */
+function el(html){ const d=document.createElement("div"); d.innerHTML=html.trim(); return d.firstChild; }
+function esc(s){ return (s??"").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function render(){
+  const app = document.getElementById("app");
+  const avgScore = state.leads.length ? Math.round(state.leads.reduce((a,l)=>a+computeScore(l),0)/state.leads.length) : 0;
+  const cexCount = state.leads.filter(l=>(l.exchangesCEX||[]).length>0).length;
+  const dexOnly = state.leads.filter(l=>(l.exchangesCEX||[]).length===0 && (l.exchangesDEX||[]).length>0).length;
+
+  app.innerHTML = `
+    <div class="tickerbar">
+      <div class="brand"><span class="dot"></span> LEAD RADAR <span class="muted" style="font-size:11px;font-weight:400;">— web3 coin research &amp; lead desk</span></div>
+      <div class="tickerstats">
+        <div class="tstat"><div class="v">${state.leads.length}</div><div class="l">Total Leads</div></div>
+        <div class="tstat"><div class="v">${cexCount}</div><div class="l">CEX-Listed</div></div>
+        <div class="tstat"><div class="v">${dexOnly}</div><div class="l">DEX-Only</div></div>
+        <div class="tstat"><div class="v">${avgScore}</div><div class="l">Avg Score</div></div>
+      </div>
+    </div>
+
+    <div class="livebox">
+      <input type="text" id="liveQuery" placeholder="Live lookup — coin name, symbol, or contract address (e.g. arbitrum, PEPE, 0x...)" onkeydown="if(event.key==='Enter')doLiveLookup()">
+      <button class="btn primary" onclick="doLiveLookup()">Live Lookup</button>
+      <button class="btn" onclick="openModal(null)">+ Add Manually</button>
+    </div>
+    <div class="status ${state.statusType}" id="statusline">${state.status}</div>
+
+    <div class="controls" style="margin-top:10px;">
+      <div class="searchbox"><input type="text" placeholder="Filter database by name, symbol, chain, narrative…" value="${esc(state.search)}" oninput="state.search=this.value; render()"></div>
+      <button class="btn" onclick="exportCSV()">⤓ Export CSV</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab ${state.view==='database'?'active':''}" onclick="state.view='database';render()">Database</div>
+      <div class="tab ${state.view==='rankings'?'active':''}" onclick="state.view='rankings';render()">Rankings</div>
+    </div>
+    <div class="panel" id="panelBody"></div>
+  `;
+  renderPanel();
+}
+function renderStatusOnly(){
+  const s = document.getElementById("statusline");
+  if(s){ s.textContent = state.status; s.className = "status "+(state.statusType||""); }
+}
+
+function filteredLeads(){
+  let arr = state.leads.slice();
+  if(state.search.trim()){
+    const q = state.search.toLowerCase();
+    arr = arr.filter(l => [l.name,l.symbol,l.chain,l.narrative].join(" ").toLowerCase().includes(q));
+  }
+  arr.forEach(l=>l._score = computeScore(l));
+  arr.sort((a,b)=>{
+    let av,bv;
+    if(state.sortKey==="score"){ av=a._score; bv=b._score; }
+    else if(["volume24h","liquidity","marketCap"].includes(state.sortKey)){ av=num(a[state.sortKey]); bv=num(b[state.sortKey]); }
+    else { av=(a[state.sortKey]||"").toString().toLowerCase(); bv=(b[state.sortKey]||"").toString().toLowerCase(); }
+    if(av<bv) return state.sortDir==="asc"?-1:1;
+    if(av>bv) return state.sortDir==="asc"?1:-1;
+    return 0;
+  });
+  return arr;
+}
+function setSort(key){
+  if(state.sortKey===key) state.sortDir = state.sortDir==="asc"?"desc":"asc";
+  else { state.sortKey=key; state.sortDir="desc"; }
+  render();
+}
+
+function renderPanel(){
+  const body = document.getElementById("panelBody");
+  if(state.view==="database"){ body.innerHTML = renderTable(); return; }
+  body.innerHTML = renderRankings();
+}
+
+function renderTable(){
+  const leads = filteredLeads();
+  if(!leads.length){
+    return `<div class="emptystate"><b>No leads yet</b>Run a live lookup or add one manually to start building your database.</div>`;
+  }
+  const head = `<tr>
+    <th onclick="setSort('name')">Coin</th>
+    <th onclick="setSort('chain')">Chain</th>
+    <th onclick="setSort('narrative')">Narrative</th>
+    <th>Exchanges</th>
+    <th onclick="setSort('marketCap')">Mkt Cap</th>
+    <th onclick="setSort('volume24h')">24h Vol</th>
+    <th onclick="setSort('liquidity')">Liquidity</th>
+    <th onclick="setSort('score')">Lead Score</th>
+    <th>Risk</th>
+    <th></th>
+  </tr>`;
+  const rows = leads.map(l=>{
+    const tier = scoreTier(l._score);
+    const risks = computeAutoRisks(l);
+    return `<tr class="row" onclick="openModal('${l.id}')">
+      <td><div class="coinname">${esc(l.name)||"<i>Unnamed</i>"}</div><div class="symbol">${esc(l.symbol)}</div></td>
+      <td>${esc(l.chain)||"—"}</td>
+      <td>${l.narrative?`<span class="tag narrative">${esc(l.narrative)}</span>`:"—"}</td>
+      <td>
+        ${(l.exchangesCEX||[]).slice(0,2).map(x=>`<span class="tag cex">${esc(x)}</span>`).join("")}
+        ${(l.exchangesDEX||[]).slice(0,2).map(x=>`<span class="tag dex">${esc(x)}</span>`).join("")}
+        ${((l.exchangesCEX||[]).length+(l.exchangesDEX||[]).length)>4?`<span class="muted">+${(l.exchangesCEX.length+l.exchangesDEX.length)-4}</span>`:""}
+      </td>
+      <td>${l.marketCap?("$"+fmtNum(l.marketCap)):"—"}</td>
+      <td>${l.volume24h?("$"+fmtNum(l.volume24h)):"—"}</td>
+      <td>${l.liquidity?("$"+fmtNum(l.liquidity)):"—"}</td>
+      <td><span class="scorepill" style="color:${tier.color}">${l._score} · ${tier.label}</span></td>
+      <td><div class="riskbadges">${risks.slice(0,4).map(()=>`<span class="riskdot" title=""></span>`).join("")}${risks.length>4?`<span class="muted" style="font-size:10px">+${risks.length-4}</span>`:""}</div></td>
+      <td><button class="btn small" onclick="event.stopPropagation(); deleteLead('${l.id}')">✕</button></td>
+    </tr>`;
+  }).join("");
+  return `<table><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+}
+
+function rankCard(title, list, fmt){
+  if(!list.length) return `<div class="rankcard"><h3>${title}</h3><div class="muted" style="font-size:11px;">No qualifying leads yet</div></div>`;
+  return `<div class="rankcard"><h3>${title}</h3>${list.map((l,i)=>`<div class="rankrow"><span><span class="rn">${i+1}.</span> ${esc(l.name)||"—"} <span class="symbol">${esc(l.symbol)}</span></span><span>${fmt(l)}</span></div>`).join("")}</div>`;
+}
+function renderRankings(){
+  const all = state.leads.map(l=>({...l, _score:computeScore(l)}));
+  if(!all.length) return `<div class="emptystate"><b>No data to rank yet</b>Add leads to populate rankings.</div>`;
+  const top = (arr,n=10)=>arr.slice(0,n);
+  const byScore = [...all].sort((a,b)=>b._score-a._score);
+  const cex = byScore.filter(l=>(l.exchangesCEX||[]).length>0);
+  const dex = byScore.filter(l=>(l.exchangesDEX||[]).length>0);
+  const byLiq = [...all].sort((a,b)=>num(b.liquidity)-num(a.liquidity));
+  const byVol = [...all].sort((a,b)=>num(b.volume24h)-num(a.volume24h));
+  const undervalued = [...all].filter(l=>num(l.marketCap)>0).sort((a,b)=>(num(a.marketCap)/Math.max(a._score,1))-(num(b.marketCap)/Math.max(b._score,1)));
+  const newest = [...all].sort((a,b)=>new Date(b.lastUpdated)-new Date(a.lastUpdated));
+  const byNarrative = (n)=>byScore.filter(l=>l.narrative===n);
+
+  return `<div class="rankgrid">
+    ${rankCard("Top 10 Overall", top(byScore), l=>`${l._score}`)}
+    ${rankCard("Top 10 CEX Projects", top(cex), l=>(l.exchangesCEX||[]).length+" exch")}
+    ${rankCard("Top 10 DEX Projects", top(dex), l=>"$"+fmtNum(l.liquidity))}
+    ${rankCard("Highest Liquidity", top(byLiq), l=>"$"+fmtNum(l.liquidity))}
+    ${rankCard("Highest Volume", top(byVol), l=>"$"+fmtNum(l.volume24h))}
+    ${rankCard("Most Undervalued (score vs mcap)", top(undervalued), l=>"$"+fmtNum(l.marketCap))}
+    ${rankCard("Newest Additions", top(newest), l=>new Date(l.lastUpdated).toLocaleDateString())}
+    ${rankCard("Top AI Coins", top(byNarrative("AI")), l=>`${l._score}`)}
+    ${rankCard("Top Meme Coins", top(byNarrative("Meme")), l=>`${l._score}`)}
+    ${rankCard("Top DeFi Projects", top(byNarrative("DeFi")), l=>`${l._score}`)}
+    ${rankCard("Top Infrastructure Projects", top(byNarrative("Infrastructure")), l=>`${l._score}`)}
+    ${rankCard("Top RWA Projects", top(byNarrative("RWA")), l=>`${l._score}`)}
+  </div>`;
+}
+
+/* ================= MODAL ================= */
+async function doLiveLookup(){
+  const q = document.getElementById("liveQuery").value.trim();
+  if(!q){ setStatus("Type a coin name, symbol, or contract address first.","err"); return; }
+  const draft = await liveLookup(q);
+  if(draft) openModal(null, draft);
+}
+function openModal(id, draftOverride){
+  let lead;
+  if(id){ lead = JSON.parse(JSON.stringify(state.leads.find(l=>l.id===id))); }
+  else if(draftOverride){ lead = draftOverride; }
+  else { lead = blankLead(); lead.id = crypto.randomUUID(); }
+  state.editing = lead;
+  renderModal();
+}
+function closeModal(){ state.editing=null; const o=document.getElementById("modalOverlay"); if(o) o.remove(); }
+
+function field(label, key, type, opts){
+  opts = opts || {};
+  const l = state.editing;
+  const val = l[key] ?? "";
+  let input;
+  if(type==="textarea") input = `<textarea oninput="updateField('${key}', this.value)">${esc(val)}</textarea>`;
+  else if(type==="select"){
+    const options = opts.options.map(o=>`<option value="${esc(o)}" ${o===val?"selected":""}>${esc(o)}</option>`).join("");
+    input = `<select onchange="updateField('${key}', this.value)"><option value="">—</option>${options}</select>`;
+  }
+  else if(type==="checkbox"){
+    input = `<select onchange="updateField('${key}', this.value==='true')"><option value="false" ${!val?"selected":""}>No</option><option value="true" ${val?"selected":""}>Yes</option></select>`;
+  }
+  else input = `<input type="${type||'text'}" value="${esc(val)}" oninput="updateField('${key}', this.value)" placeholder="${opts.placeholder||''}">`;
+  return `<div class="field"><label>${label}</label>${input}</div>`;
+}
+function multifield(label, key){
+  const val = (state.editing[key]||[]).join(", ");
+  return `<div class="field"><label>${label} <span class="muted" style="font-size:9px;">(comma separated)</span></label><input type="text" value="${esc(val)}" oninput="updateListField('${key}', this.value)"></div>`;
+}
+function updateField(key, val){ state.editing[key] = val; refreshScorePreview(); }
+function updateListField(key, val){ state.editing[key] = val.split(",").map(s=>s.trim()).filter(Boolean); refreshScorePreview(); }
+function toggleChip(key, value){
+  const arr = state.editing[key] || [];
+  const idx = arr.indexOf(value);
+  if(idx>=0) arr.splice(idx,1); else arr.push(value);
+  state.editing[key] = arr;
+  renderModal();
+}
+function refreshScorePreview(){
+  const prev = document.getElementById("scorePreviewBox");
+  if(!prev) return;
+  const l = state.editing;
+  const score = computeScore(l), tier = scoreTier(score);
+  prev.innerHTML = scorePreviewHTML(l, score, tier);
+}
+function scorePreviewHTML(l, score, tier){
+  return `<div class="big" style="color:${tier.color}">${score}</div>
+    <div class="bd">${tier.label}<br>
+    Vol ${volumeScore(l)} · Liq ${liquidityScore(l)} · Comm ${communityScore(l)} · Exch ${exchangeScore(l)}<br>
+    Web ${websiteScore(l)} · Narrative ${narrativeScore(l)} · Security ${securityScore(l)}</div>`;
+}
+
+function renderModal(){
+  closeModal();
+  const l = state.editing;
+  const score = computeScore(l), tier = scoreTier(score);
+  const overlay = el(`<div class="overlay" id="modalOverlay"></div>`);
+  overlay.innerHTML = `
+    <div class="modal modalwrap">
+      <span class="closebtn" onclick="closeModal()">✕</span>
+      <h2>${l.name? "Edit Lead" : "New Lead"}</h2>
+      <div class="sub">${l.source==='live'?'Pulled from live data — fill in the manual research fields below.':'Manual entry'}</div>
+
+      <div class="sectiontitle">Basic Info</div>
+      <div class="fgrid">
+        ${field("Project Name","name","text")}
+        ${field("Symbol","symbol","text")}
+        ${field("Chain","chain","text")}
+        ${field("Contract Address","contractAddress","text")}
+        ${field("Launch Date","launchDate","text")}
+        ${field("Token Standard","tokenStandard","text",{placeholder:"ERC-20, SPL…"})}
+      </div>
+
+      <div class="sectiontitle">Market Metrics</div>
+      <div class="fgrid">
+        ${field("Price (USD)","price","text")}
+        ${field("24h Volume","volume24h","text")}
+        ${field("Liquidity","liquidity","text")}
+        ${field("Market Cap","marketCap","text")}
+        ${field("FDV","fdv","text")}
+        ${field("Holders","holders","text")}
+        ${field("Circulating Supply","circulatingSupply","text")}
+        ${field("Total Supply","totalSupply","text")}
+        ${field("Daily Transactions","dailyTx","text")}
+      </div>
+
+      <div class="sectiontitle">Exchange &amp; Liquidity Coverage</div>
+      <div class="fgrid two">
+        ${multifield("CEX Listings","exchangesCEX")}
+        ${multifield("DEX Listings","exchangesDEX")}
+        ${multifield("Perp/Futures Listings","perp")}
+        ${field("Top Trading Pair","topPair","text")}
+        ${field("LP Size","lpSize","text")}
+        ${field("Locked Liquidity %","lockedLiquidityPct","text")}
+      </div>
+
+      <div class="sectiontitle">Community &amp; Links</div>
+      <div class="fgrid">
+        ${field("Website","website","text")}
+        ${field("Whitepaper","whitepaper","text")}
+        ${field("GitHub","github","text")}
+        ${field("Twitter/X","twitter","text")}
+        ${field("Telegram","telegram","text")}
+        ${field("Twitter Followers","twitterFollowers","text")}
+        ${field("Telegram Members","telegramMembers","text")}
+        ${field("Discord Members","discordMembers","text")}
+        ${field("GitHub / Dev Activity","githubActivity","text")}
+      </div>
+
+      <div class="sectiontitle">Website &amp; Security Review</div>
+      <div class="fgrid">
+        ${field("Website Quality (1–10)","websiteQuality","text")}
+        ${field("Audit Completed","audit","checkbox")}
+        ${field("KYC Completed","kyc","checkbox")}
+        ${field("Ownership Renounced","ownershipRenounced","checkbox")}
+        ${field("Multisig Treasury","multisig","checkbox")}
+        ${field("Mint Authority Active","mintAuthority","checkbox")}
+      </div>
+      <div class="fgrid two">
+        ${field("Known Exploits","knownExploits","textarea")}
+        ${field("Scam Reports","scamReports","textarea")}
+      </div>
+
+      <div class="sectiontitle">Narrative</div>
+      <div class="fgrid two">
+        ${field("Category","narrative","select",{options:NARRATIVES})}
+        ${field("Narrative Strength Override (0–100, optional)","narrativeOverride","text")}
+      </div>
+
+      <div class="sectiontitle">Partnership Potential</div>
+      <div class="chiprow" id="chipsPartner">
+        ${PARTNERSHIPS.map(p=>`<div class="chip ${ (l.partnerships||[]).includes(p)?'on':''}" onclick="toggleChip('partnerships','${p}')">${p}</div>`).join("")}
+      </div>
+
+      <div class="sectiontitle">Manual Risk Flags</div>
+      <div class="chiprow" id="chipsRisk">
+        ${RISK_OPTIONS.map(p=>`<div class="chip risk ${ (l.manualRisks||[]).includes(p)?'on':''}" onclick="toggleChip('manualRisks','${p}')">${p}</div>`).join("")}
+      </div>
+
+      <div class="sectiontitle">Notes</div>
+      <div class="fgrid one">${field("Notes / Outreach Status","notes","textarea")}</div>
+
+      <div class="scorepreview" id="scorePreviewBox">${scorePreviewHTML(l, score, tier)}</div>
+
+      <div class="modalfooter">
+        <span class="muted" style="font-size:10.5px;">${l.id?("Last updated "+new Date(l.lastUpdated).toLocaleString()):"Not saved yet"}</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn ghost" onclick="closeModal()">Cancel</button>
+          <button class="btn primary" onclick="saveModal()">Save Lead</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+function saveModal(){
+  if(!state.editing.name){ alert("Give the project a name before saving."); return; }
+  upsertLead(state.editing);
+  closeModal();
+  render();
+}
+
+/* ================= INIT ================= */
+loadLeads();
+</script>
+</body>
+</html>
